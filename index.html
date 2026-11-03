@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#10131b">
+<title>Universal Media Player</title>
+<style>
+:root{--bg:#0c0f16;--panel:#171c27;--panel2:#202737;--line:#30394b;--text:#f4f6fb;--muted:#9aa6ba;--accent:#ff8a24;--accent2:#ffc06b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+button,input,select{font:inherit}button{cursor:pointer;color:inherit;border:1px solid var(--line);background:#252d3c;border-radius:9px;padding:9px 12px}button:hover{background:#303b4e;border-color:#59667d}button:disabled{opacity:.4;cursor:not-allowed}
+.topbar{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--line);background:#121722;position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:11px;font-size:17px;font-weight:800;letter-spacing:-.3px}.cone{width:34px;height:34px;border-radius:10px;background:linear-gradient(145deg,#ffb04b,#f36b16);display:grid;place-items:center;color:#21170c;font-size:21px;box-shadow:0 4px 18px #ff8a2440}
+.top-actions{display:flex;gap:8px}.top-actions button{font-size:12px}
+.app{max-width:1450px;margin:auto;padding:20px;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px}
+.main{min-width:0}.screen{background:#000;border:1px solid #252b37;border-radius:14px;overflow:hidden;position:relative;aspect-ratio:16/9;display:grid;place-items:center;box-shadow:0 18px 50px #0008}
+video{width:100%;height:100%;object-fit:contain;background:#000}.empty{text-align:center;padding:25px;color:#aeb8c9}.empty .bigcone{font-size:58px;line-height:1.3;filter:drop-shadow(0 5px 15px #ff8a2455)}.empty h1{font-size:21px;color:#f3f5f9;margin:8px 0}.empty p{color:#8e9bb0;margin:5px 0 16px}
+.drop-hint{position:absolute;inset:10px;border:2px dashed transparent;border-radius:12px;pointer-events:none}.screen.dragover .drop-hint{border-color:var(--accent);background:#ff8a2410}
+.controls{background:#171d29;border:1px solid var(--line);border-radius:0 0 14px 14px;padding:12px 14px;margin-top:-1px}
+.timeline{width:100%;accent-color:var(--accent);height:5px;cursor:pointer;margin:0 0 9px;display:block}
+.controlrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.controlrow .spacer{flex:1}.iconbtn{min-width:38px;padding:7px 9px;font-size:15px}.time{font-size:12px;color:#b8c2d2;font-variant-numeric:tabular-nums}.volume{width:90px;accent-color:var(--accent)}select{background:#252d3c;color:#e8edf6;border:1px solid var(--line);border-radius:8px;padding:8px}
+.below{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap}.now{min-width:0}.now strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.now small{color:var(--muted)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}.panelhead{padding:15px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.panelhead h2{font-size:14px;margin:0}.panelbody{padding:14px}.side{display:flex;flex-direction:column;gap:14px}.tabs{display:flex;gap:6px}.tabs button{padding:6px 9px;font-size:11px}.tabs button.active{background:#ff8a2420;color:var(--accent2);border-color:#a75d25}
+.urlrow{display:flex;gap:7px}.urlrow input{width:100%;min-width:0;background:#0f1420;border:1px solid var(--line);border-radius:8px;padding:10px;color:white;outline:none}.urlrow input:focus{border-color:var(--accent)}
+.primary{background:linear-gradient(120deg,#ff9b36,#ed6b17);border:0;color:#21150b;font-weight:800}.primary:hover{background:linear-gradient(120deg,#ffb45e,#ff8129)}
+.playlist{list-style:none;padding:0;margin:0;max-height:310px;overflow:auto}.playlist li{display:flex;align-items:center;gap:9px;padding:10px;border-radius:9px;color:#c6cfdd;cursor:pointer;font-size:12px}.playlist li:hover{background:#ffffff0a}.playlist li.active{background:#ff8a2418;color:#ffc078}.tracknum{color:#78869c;font-variant-numeric:tabular-nums}.trackname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}.remove{padding:3px 7px;font-size:11px}
+.emptylist{font-size:12px;color:#7f8ca1;text-align:center;padding:18px 5px}
+.shortcuts{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:12px;color:var(--muted)}kbd{font:11px ui-monospace,monospace;color:#dfe6f2;background:#252d3c;border:1px solid #3a465a;border-radius:5px;padding:2px 6px}
+.notice{font-size:11px;color:#8996aa;line-height:1.6;margin:10px 0 0}.filebtn{display:block;text-align:center;width:100%;margin-top:9px}.status{font-size:11px;color:#91a0b5;margin-top:10px;min-height:16px}
+@media(max-width:950px){.app{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.side .panel:first-child{grid-column:1/-1}}
+@media(max-width:600px){.app{padding:12px}.topbar{padding:0 13px}.top-actions button span{display:none}.side{display:flex}.controlrow{gap:6px}.volume{width:65px}.controlrow select{max-width:90px}.screen{aspect-ratio:16/10}.below{align-items:flex-start}.top-actions{gap:5px}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><div class="cone">▶</div> Universal Media Player</div>
+  <div class="top-actions">
+    <button id="openTop">＋ <span>Open media</span></button>
+    <button id="openUrlTop">↗ <span>Open URL</span></button>
+  </div>
+</header>
+<div class="app">
+  <main class="main">
+    <div class="screen" id="screen">
+      <div class="empty" id="emptyState"><div class="bigcone">▶</div><h1>Your media player</h1><p>Open a video or audio file to start watching</p><button class="primary" id="openMain">Open file</button></div>
+      <video id="video" playsinline preload="metadata" hidden></video>
+      <div class="drop-hint"></div>
+    </div>
+    <section class="controls">
+      <input class="timeline" id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek">
+      <div class="controlrow">
+        <button class="iconbtn" id="prev" title="Previous">|◀</button>
+        <button class="iconbtn" id="play" title="Play / Pause">▶</button>
+        <button class="iconbtn" id="stop" title="Stop">■</button>
+        <button class="iconbtn" id="next" title="Next">▶|</button>
+        <span class="time" id="clock">00:00 / 00:00</span>
+        <span class="spacer"></span>
+        <span style="font-size:12px;color:#aab5c7">🔊</span>
+        <input class="volume" id="volume" type="range" min="0" max="1" step=".01" value=".8" aria-label="Volume">
+        <select id="speed" title="Playback speed"><option value=".5">0.5×</option><option value=".75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select>
+        <button class="iconbtn" id="pip" title="Picture in Picture">▣</button>
+        <button class="iconbtn" id="fullscreen" title="Fullscreen">⛶</button>
+      </div>
+    </section>
+    <div class="below">
+      <div class="now"><strong id="filename">Nothing playing</strong><small id="fileinfo">Open a local file or paste a direct media URL</small></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="subtitle">CC Subtitles</button><button id="audioOnly">Audio visualizer mode</button></div>
+    </div>
+  </main>
+  <aside class="side">
+    <section class="panel">
+      <div class="panelhead"><h2>Open media</h2><div class="tabs"><button class="active" id="tabFile">File</button><button id="tabUrl">URL</button></div></div>
+      <div class="panelbody" id="filePane">
+        <button class="primary" id="chooseFile" style="width:100%">＋ Choose files</button>
+        <button class="filebtn" id="chooseFolder">▣ Add folder</button>
+        <p class="notice">Play video and audio files stored on your device. Drag and drop files directly onto the player.</p>
+      </div>
+      <div class="panelbody" id="urlPane" hidden>
+        <div class="urlrow"><input id="urlInput" type="url" placeholder="https://example.com/video.mp4"><button class="primary" id="loadUrl">Play</button></div>
+        <p class="notice">Use a direct media-file URL. Some streams require server CORS support. YouTube/social webpage URLs are not direct media files and may not play here.</p>
+      </div>
+      <input id="fileInput" type="file" accept="video/*,audio/*,.m3u8,.mpd" multiple hidden>
+      <input id="folderInput" type="file" accept="video/*,audio/*" webkitdirectory multiple hidden>
+    </section>
+    <section class="panel">
+      <div class="panelhead"><h2>Playlist</h2><button class="remove" id="clearList">Clear</button></div>
+      <div class="panelbody"><ul class="playlist" id="playlist"><li class="emptylist">Your playlist is empty</li></ul></div>
+    </section>
+    <section class="panel">
+      <div class="panelhead"><h2>Keyboard shortcuts</h2></div>
+      <div class="panelbody"><div class="shortcuts"><span>Play / Pause</span><kbd>Space</kbd><span>Seek backward / forward</span><kbd>← / →</kbd><span>Volume down / up</span><kbd>↓ / ↑</kbd><span>Mute</span><kbd>M</kbd><span>Fullscreen</span><kbd>F</kbd><span>Stop</span><kbd>S</kbd></div></div>
+    </section>
+  </aside>
+</div>
+<script>
+const $=id=>document.getElementById(id), video=$('video');
+let items=[],current=-1,objectUrls=[],audioMode=false;
+const fmt=t=>{if(!Number.isFinite(t))return'00:00';let h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=Math.floor(t%60);return h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`};
+function setInfo(msg){$('fileinfo').textContent=msg}
+function renderList(){let ul=$('playlist');ul.innerHTML='';if(!items.length){ul.innerHTML='<li class="emptylist">Your playlist is empty</li>';return}
+items.forEach((it,i)=>{let li=document.createElement('li');li.className=i===current?'active':'';let n=document.createElement('span');n.className='tracknum';n.textContent=String(i+1).padStart(2,'0');let name=document.createElement('span');name.className='trackname';name.textContent=it.name;name.title=it.name;let rm=document.createElement('button');rm.className='remove';rm.textContent='×';rm.title='Remove';rm.onclick=e=>{e.stopPropagation();removeItem(i)};li.append(n,name,rm);li.onclick=()=>playItem(i);ul.append(li)})}
+function addFiles(files){[...files].forEach(file=>{if(!file.type.startsWith('video/')&&!file.type.startsWith('audio/')&&!/\.(m3u8|mpd)$/i.test(file.name))return;let src=URL.createObjectURL(file);objectUrls.push(src);items.push({name:file.name,src,type:file.type||'media'})});renderList();if(current<0&&items.length)playItem(0)}
+function playItem(i){if(i<0||i>=items.length)return;current=i;video.src=items[i].src;video.hidden=false;$('emptyState').hidden=true;$('filename').textContent=items[i].name;setInfo('Local media • '+(items[i].type||'Media file'));video.load();video.play().catch(()=>{});renderList()}
+function removeItem(i){if(i===current){video.pause();video.removeAttribute('src');video.load();current=-1;$('filename').textContent='Nothing playing';$('emptyState').hidden=false;video.hidden=true}items.splice(i,1);if(current>i)current--;renderList()}
+function loadUrl(){let raw=$('urlInput').value.trim();try{let u=new URL(raw);if(!['http:','https:'].includes(u.protocol))throw 0;items.push({name:u.pathname.split('/').pop()||u.hostname,src:u.href,type:'URL'});renderList();playItem(items.length-1);setInfo('Remote URL • playback depends on server permissions and browser support')}catch{$('urlInput').focus();setInfo('Enter a valid http or https media URL')}}
+function togglePlay(){if(!video.src)return;if(video.paused)video.play();else video.pause()}
+$('openTop').onclick=$('openMain').onclick=$('chooseFile').onclick=()=>$('fileInput').click();
+$('chooseFolder').onclick=()=>$('folderInput').click();
+$('fileInput').onchange=e=>{addFiles(e.target.files);e.target.value=''};
+$('folderInput').onchange=e=>{addFiles(e.target.files);e.target.value=''};
+$('openUrlTop').onclick=()=>{$('tabUrl').click();$('urlInput').focus()};
+$('tabFile').onclick=()=>{$('tabFile').classList.add('active');$('tabUrl').classList.remove('active');$('filePane').hidden=false;$('urlPane').hidden=true};
+$('tabUrl').onclick=()=>{$('tabUrl').classList.add('active');$('tabFile').classList.remove('active');$('filePane').hidden=true;$('urlPane').hidden=false};
+$('loadUrl').onclick=loadUrl;$('urlInput').onkeydown=e=>{if(e.key==='Enter')loadUrl()};
+$('play').onclick=togglePlay;$('stop').onclick=()=>{video.pause();video.currentTime=0};
+$('prev').onclick=()=>playItem(current-1);$('next').onclick=()=>playItem(current+1);
+video.onplay=()=>{$('play').textContent='Ⅱ'};video.onpause=()=>{$('play').textContent='▶'};
+video.ontimeupdate=()=>{if(video.duration){$('seek').value=video.currentTime/video.duration*1000;$('clock').textContent=fmt(video.currentTime)+' / '+fmt(video.duration)}};
+video.onloadedmetadata=()=>{setInfo((video.videoWidth?video.videoWidth+' × '+video.videoHeight+' • ':'')+fmt(video.duration))};
+video.onended=()=>{if(current<items.length-1)playItem(current+1)};
+$('seek').oninput=()=>{if(video.duration)video.currentTime=$('seek').value/1000*video.duration};
+$('volume').oninput=()=>video.volume=Number($('volume').value);
+$('speed').onchange=()=>video.playbackRate=Number($('speed').value);
+$('fullscreen').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else $('screen').requestFullscreen?.()};
+$('pip').onclick=async()=>{try{if(document.pictureInPictureElement)await document.exitPictureInPicture();else await video.requestPictureInPicture()}catch{setInfo('Picture-in-Picture is not available for this media/browser') }};
+$('subtitle').onclick=()=>{let f=document.createElement('input');f.type='file';f.accept='.vtt,.srt';f.onchange=()=>{let file=f.files[0];if(!file)return;let url=URL.createObjectURL(file);let track=document.createElement('track');track.kind='subtitles';track.label=file.name;track.srclang='en';track.src=url;track.default=true;video.append(track);setInfo('Subtitle added. Browser support for SRT varies; WebVTT is recommended.')};f.click()};
+$('audioOnly').onclick=()=>{audioMode=!audioMode;$('screen').style.background=audioMode?'radial-gradient(circle,#333 0,#080808 65%)':'#000';setInfo(audioMode?'Audio mode enabled':'Video display restored')};
+$('clearList').onclick=()=>{video.pause();video.removeAttribute('src');video.load();items=[];current=-1;objectUrls.forEach(URL.revokeObjectURL);objectUrls=[];video.hidden=true;$('emptyState').hidden=false;$('filename').textContent='Nothing playing';setInfo('Playlist cleared');renderList()};
+const screen=$('screen');screen.addEventListener('dragover',e=>{e.preventDefault();screen.classList.add('dragover')});screen.addEventListener('dragleave',()=>screen.classList.remove('dragover'));screen.addEventListener('drop',e=>{e.preventDefault();screen.classList.remove('dragover');addFiles(e.dataTransfer.files)});
+document.addEventListener('keydown',e=>{if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName))return;if(e.code==='Space'){e.preventDefault();togglePlay()}if(e.key==='ArrowLeft')video.currentTime=Math.max(0,video.currentTime-5);if(e.key==='ArrowRight')video.currentTime=Math.min(video.duration||Infinity,video.currentTime+5);if(e.key==='ArrowUp')video.volume=Math.min(1,video.volume+.05);if(e.key==='ArrowDown')video.volume=Math.max(0,video.volume-.05);if(e.key.toLowerCase()==='m')video.muted=!video.muted;if(e.key.toLowerCase()==='f')$('fullscreen').click();if(e.key.toLowerCase()==='s')$('stop').click()});
+renderList();
+</script>
+</body>
+</html>
